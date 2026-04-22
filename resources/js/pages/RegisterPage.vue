@@ -4,13 +4,13 @@ import { useRouter, RouterLink } from 'vue-router';
 import { auth } from '../stores/auth.js';
 
 const router = useRouter();
-const name = ref(''); const email = ref(''); const password = ref(''); const password_confirmation = ref('');
+const name = ref(''); const email = ref(''); const phone = ref(''); const password = ref(''); const password_confirmation = ref('');
 const loading = ref(false); const errors = ref({}); const errMsg = ref('');
 
 async function submit() {
   loading.value = true; errors.value = {}; errMsg.value = '';
   try {
-    await auth.register(name.value, email.value, password.value, password_confirmation.value);
+    await auth.register(name.value, email.value, password.value, password_confirmation.value, phone.value || null);
     router.push('/');
   } catch (e) {
     errors.value = e?.response?.data?.errors || {};
@@ -44,6 +44,10 @@ async function submit() {
           </div>
           <div><label class="label">Email</label><input v-model="email" type="email" required class="input" />
             <p v-if="errors.email" class="text-rose-600 text-xs mt-1">{{ errors.email[0] }}</p>
+          </div>
+          <div><label class="label">No. HP <span class="text-ink-400 font-normal">(opsional)</span></label>
+            <input v-model="phone" type="tel" inputmode="tel" class="input" placeholder="0812-3456-7890" />
+            <p v-if="errors.phone" class="text-rose-600 text-xs mt-1">{{ errors.phone[0] }}</p>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div><label class="label">Password</label><input v-model="password" type="password" required class="input" /></div>

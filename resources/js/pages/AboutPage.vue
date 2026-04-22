@@ -8,7 +8,7 @@ import { RouterLink } from 'vue-router';
       <h1 class="page-title">Tentang Metode</h1>
       <p class="page-sub">Regresi linear sederhana — fondasi statistika &amp; machine learning.</p>
     </div>
-    <span class="nav-pill">Versi 1.1.0</span>
+    <span class="nav-pill">Versi 1.2.0</span>
   </div>
 
   <section class="hero mb-6">
@@ -76,11 +76,23 @@ import { RouterLink } from 'vue-router';
   </section>
 
   <section class="surface p-6 mt-6">
-    <h3 class="section-title mb-3">🆕 Apa yang baru di v1.1.0</h3>
-    <ul class="text-sm text-ink-700 list-disc pl-5 space-y-1">
-      <li>Fitur <strong>Lupa Password</strong>: minta tautan reset langsung dari halaman login.</li>
-      <li>Halaman <strong>Reset Password</strong> dengan token berlaku 60 menit &amp; otomatis mencabut sesi lama.</li>
-      <li>Penanda versi aplikasi pada footer dan halaman Tentang.</li>
-    </ul>
+    <h3 class="section-title mb-3">🆕 Apa yang baru</h3>
+    <div class="space-y-4 text-sm text-ink-700">
+      <div>
+        <div class="font-bold text-ink-900">v1.2.0</div>
+        <ul class="list-disc pl-5 space-y-1 mt-1">
+          <li>Tambahan field <strong>No. HP</strong> pada profil, registrasi, dan manajemen pengguna.</li>
+          <li>Kolom No. HP juga ditampilkan pada tabel daftar pengguna.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="font-bold text-ink-900">v1.1.0</div>
+        <ul class="list-disc pl-5 space-y-1 mt-1">
+          <li>Fitur <strong>Lupa Password</strong>: minta tautan reset langsung dari halaman login.</li>
+          <li>Halaman <strong>Reset Password</strong> dengan token berlaku 60 menit &amp; otomatis mencabut sesi lama.</li>
+          <li>Penanda versi aplikasi pada footer dan halaman Tentang.</li>
+        </ul>
+      </div>
+    </div>
   </section>
 </template>
