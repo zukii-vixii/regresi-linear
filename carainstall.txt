@@ -1,0 +1,362 @@
+================================================================================
+  REGRESI LINEAR — Panduan Instalasi
+  Aplikasi Metode Regresi Linear Sederhana (Y = a + bX)
+  Stack: Laravel 10 + Vue 3 + PHP 8.4 + MySQL + Nginx + SSL
+================================================================================
+
+
+=== 1. SPESIFIKASI VPS MINIMUM ===
+
+  • OS         : Ubuntu 22.04 LTS atau Ubuntu 24.04 LTS (fresh, akses root)
+  • CPU        : 1 vCPU
+  • RAM        : 1 GB (rekomendasi 2 GB)
+  • Disk       : 5 GB free
+  • Bandwidth  : Tidak ada batasan khusus
+  • Akses      : SSH sebagai root, port 80 & 443 terbuka
+
+
+=== 2. YANG HARUS DISIAPKAN ===
+
+  1. VPS Ubuntu 22.04/24.04 fresh + IP publik.
+  2. Domain (mis. regresi-linear.lintascode.com) sudah pointing A-record ke IP VPS.
+     Cek dengan: dig +short regresi-linear.lintascode.com
+     Hasilnya harus IP VPS Anda. Tunggu 5–30 menit kalau baru ubah DNS.
+  3. Paket source code: regresi-linear.zip (download dari katalog lintascode.com).
+  4. Akses SSH ke VPS (root@IP-VPS, password atau SSH key).
+
+
+=== 3. CARA CEPAT (1 BARIS) ===
+
+  Upload zip & jalankan installer:
+
+    # Dari laptop/PC Anda:
+    scp regresi-linear.zip root@IP-VPS:/var/www/
+
+    # Lalu SSH ke VPS:
+    ssh root@IP-VPS
+    cd /var/www
+    unzip -o regresi-linear.zip
+    rm regresi-linear.zip
+    cd regresi-linear
+    chmod +x install.sh
+    bash install.sh
+
+  Selesai dalam ~5–10 menit. Output terakhir akan menampilkan URL,
+  kredensial database, dan login default admin/user.
+
+  Custom domain:
+    DOMAIN=app.example.com bash install.sh
+
+
+=== 4. CARA MANUAL LENGKAP (STEP-BY-STEP) ===
+
+  Kalau install.sh gagal di tengah jalan, atau Anda ingin tahu apa yang
+  terjadi, ini langkah-langkahnya satu per satu.
+
+  ----- 4.1 Update sistem -----
+    apt-get update -y
+    apt-get install -y curl wget git unzip ca-certificates lsb-release \
+      software-properties-common gnupg openssl
+
+    [Output: paket terinstall, tidak ada error]
+
+  ----- 4.2 Install PHP 8.4 + ekstensi -----
+    add-apt-repository -y ppa:ondrej/php
+    apt-get update -y
+    apt-get install -y php8.4-fpm php8.4-cli php8.4-mysql php8.4-mbstring \
+      php8.4-xml php8.4-curl php8.4-zip php8.4-bcmath php8.4-gd \
+      php8.4-intl php8.4-tokenizer php8.4-fileinfo
+
+    Verifikasi: php -v
+    [Output: PHP 8.4.x ...]
+
+  ----- 4.3 Install Composer -----
+    curl -fsSL https://getcomposer.org/installer | php -- \
+      --install-dir=/usr/local/bin --filename=composer
+
+    Verifikasi: composer --version
+    [Output: Composer version 2.x.x]
+
+  ----- 4.4 Install Node.js 20 -----
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+
+    Verifikasi: node -v && npm -v
+    [Output: v20.x.x dan 10.x.x]
+
+  ----- 4.5 Install MySQL + buat database -----
+    apt-get install -y mysql-server
+    systemctl enable --now mysql
+
+    DB_PASS="$(openssl rand -hex 16)"
+    echo "Simpan password ini: $DB_PASS"
+
+    mysql -uroot <<EOF
+    CREATE DATABASE regresi_linear_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE USER 'regresi_linear'@'localhost' IDENTIFIED BY '$DB_PASS';
+    GRANT ALL PRIVILEGES ON regresi_linear_db.* TO 'regresi_linear'@'localhost';
+    FLUSH PRIVILEGES;
+    EOF
+
+  ----- 4.6 Setup .env, install dependency, migrasi DB -----
+    cd /var/www/regresi-linear
+
+    # Buat .env (ganti DOMAIN dan DB_PASS sesuai punya Anda)
+    cat > .env <<EOF
+    APP_NAME="Regresi Linear"
+    APP_ENV=production
+    APP_KEY=
+    APP_DEBUG=false
+    APP_URL=https://regresi-linear.lintascode.com
+
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE=regresi_linear_db
+    DB_USERNAME=regresi_linear
+    DB_PASSWORD=PASSWORD_DARI_4.5
+
+    CACHE_DRIVER=file
+    SESSION_DRIVER=file
+    QUEUE_CONNECTION=sync
+    SANCTUM_STATEFUL_DOMAINS=regresi-linear.lintascode.com
+    SESSION_DOMAIN=regresi-linear.lintascode.com
+    EOF
+
+    composer install --no-dev --optimize-autoloader
+    php artisan key:generate --force
+    php artisan migrate --force
+    php artisan db:seed --force          # buat admin & user demo
+    npm ci
+    npm run build
+    php artisan config:cache
+
+    chown -R www-data:www-data storage bootstrap/cache
+    chmod -R ug+rwx storage bootstrap/cache
+
+  ----- 4.7 Buat systemd unit (untuk integrasi GitMac auto-deploy) -----
+    Service ini bersifat oneshot: setiap kali "systemctl restart regresi-linear"
+    dijalankan, dia akan clear cache + reload php-fpm. Tidak menjalankan
+    proses node/python — Laravel dilayani oleh php-fpm.
+
+    cat > /etc/systemd/system/regresi-linear.service <<EOF
+    [Unit]
+    Description=regresi-linear (Laravel maintenance unit)
+    After=network.target mysql.service php8.4-fpm.service
+
+    [Service]
+    Type=oneshot
+    RemainAfterExit=yes
+    WorkingDirectory=/var/www/regresi-linear
+    ExecStart=/usr/bin/php /var/www/regresi-linear/artisan optimize:clear
+    ExecStart=/usr/bin/php /var/www/regresi-linear/artisan config:cache
+    ExecStart=/bin/systemctl reload php8.4-fpm.service
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+
+    systemctl daemon-reload
+    systemctl enable --now regresi-linear
+
+  ----- 4.8 Konfigurasi Nginx -----
+    apt-get install -y nginx
+
+    cat > /etc/nginx/sites-available/regresi-linear <<'EOF'
+    server {
+        listen 80;
+        server_name regresi-linear.lintascode.com;
+        root /var/www/regresi-linear/public;
+        index index.php index.html;
+        client_max_body_size 25m;
+
+        location / { try_files $uri $uri/ /index.php?$query_string; }
+
+        location ~ \.php$ {
+            fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+            include fastcgi_params;
+        }
+
+        location ~ /\.(?!well-known).* { deny all; }
+    }
+    EOF
+
+    ln -sf /etc/nginx/sites-available/regresi-linear /etc/nginx/sites-enabled/
+    rm -f /etc/nginx/sites-enabled/default
+    nginx -t && systemctl reload nginx
+
+  ----- 4.9 Pasang SSL gratis dari Let's Encrypt -----
+    apt-get install -y certbot python3-certbot-nginx
+    certbot --nginx -d regresi-linear.lintascode.com \
+      --non-interactive --agree-tos -m admin@lintascode.com --redirect
+
+    [Output: "Successfully deployed certificate"]
+
+  ----- 4.10 Verifikasi -----
+    systemctl is-active regresi-linear     # harus: active
+    systemctl is-active nginx              # harus: active
+    systemctl is-active php8.4-fpm         # harus: active
+    systemctl is-active mysql              # harus: active
+    curl -sI https://regresi-linear.lintascode.com/         # harus: HTTP/2 200
+    curl -s  https://regresi-linear.lintascode.com/api/health
+
+
+=== 5. KONFIGURASI .env ===
+
+  File: /var/www/regresi-linear/.env
+
+  Variable WAJIB:
+    APP_KEY                — auto-generate via "php artisan key:generate"
+    APP_URL                — URL publik aplikasi (https://domain-anda)
+    APP_ENV                — set: production
+    APP_DEBUG              — set: false (true HANYA untuk debugging)
+    DB_DATABASE            — nama database MySQL
+    DB_USERNAME            — user MySQL
+    DB_PASSWORD            — password MySQL
+    SANCTUM_STATEFUL_DOMAINS — sama dengan domain (tanpa https://)
+    SESSION_DOMAIN         — sama dengan domain (tanpa https://)
+
+  Variable opsional:
+    LOG_LEVEL=error        — kurangi log di production
+    SESSION_LIFETIME=120   — durasi sesi login (menit)
+
+  Setelah edit .env, JANGAN LUPA:
+    cd /var/www/regresi-linear
+    php artisan config:cache
+    systemctl restart regresi-linear
+
+
+=== 6. CARA UPDATE / RE-DEPLOY ===
+
+  Opsi A — Manual upload zip baru:
+    1. Backup dulu (lihat section 8).
+    2. Upload zip baru, unzip ke folder sementara.
+    3. Salin folder app/, resources/, routes/, database/, public/ — JANGAN
+       timpa folder storage/ dan file .env.
+    4. Jalankan:
+         cd /var/www/regresi-linear
+         composer install --no-dev --optimize-autoloader
+         php artisan migrate --force
+         npm ci && npm run build
+         php artisan config:cache
+         systemctl restart regresi-linear
+
+  Opsi B — Auto-deploy via GitMac (kalau Anda pakai GitMac):
+    Sudah otomatis. Push ke branch main → webhook → script deploy →
+    systemctl restart regresi-linear. Tidak perlu intervensi manual.
+
+
+=== 7. TROUBLESHOOTING ===
+
+  [A] "502 Bad Gateway" di browser
+      Penyebab: php-fpm mati atau socket salah.
+      Fix:  systemctl status php8.4-fpm
+            systemctl restart php8.4-fpm
+            Cek nginx config: socket harus /run/php/php8.4-fpm.sock
+
+  [B] "SQLSTATE[HY000] [1045] Access denied" / "Connection refused"
+      Penyebab: DB credentials di .env salah, atau MySQL tidak jalan.
+      Fix:  systemctl status mysql
+            mysql -u<DB_USER> -p<DB_PASSWORD> -e "SHOW DATABASES"
+            Edit .env → php artisan config:cache → systemctl restart regresi-linear
+
+  [C] "Table 'xxx.users' doesn't exist" saat login
+      Penyebab: Migrasi belum jalan.
+      Fix:  cd /var/www/regresi-linear
+            php artisan migrate --force
+            php artisan db:seed --force
+
+  [D] Certbot gagal: "DNS problem" / "Could not get certificate"
+      Penyebab: DNS domain belum mengarah ke IP VPS.
+      Fix:  dig +short regresi-linear.lintascode.com   # harus = IP VPS
+            Tunggu propagasi DNS (5–30 menit), lalu:
+              certbot --nginx -d regresi-linear.lintascode.com
+
+  [E] "npm run build" gagal: "Out of memory"
+      Penyebab: RAM VPS < 1 GB.
+      Fix:  Tambah swap 2 GB:
+              fallocate -l 2G /swapfile
+              chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+              echo '/swapfile none swap sw 0 0' >> /etc/fstab
+            Lalu ulang: cd /var/www/regresi-linear && npm run build
+
+  [F] "Permission denied" saat akses storage / log
+      Fix:  cd /var/www/regresi-linear
+            chown -R www-data:www-data storage bootstrap/cache
+            chmod -R ug+rwx storage bootstrap/cache
+
+  [G] CSRF token mismatch / 419 Page Expired saat login
+      Penyebab: SANCTUM_STATEFUL_DOMAINS / SESSION_DOMAIN tidak cocok.
+      Fix:  Edit .env, pastikan keduanya = domain Anda (tanpa https://).
+            php artisan config:cache && systemctl restart regresi-linear
+
+
+=== 8. BACKUP & RESTORE ===
+
+  ----- Backup database -----
+    mysqldump -u regresi_linear -p<DB_PASSWORD> regresi_linear_db \
+      > /root/backup-regresi-$(date +%F).sql
+
+  ----- Backup file (kode + uploads) -----
+    tar -czf /root/backup-regresi-files-$(date +%F).tar.gz \
+      -C /var/www regresi-linear \
+      --exclude='regresi-linear/node_modules' \
+      --exclude='regresi-linear/vendor'
+
+  ----- Restore database -----
+    mysql -u regresi_linear -p<DB_PASSWORD> regresi_linear_db \
+      < /root/backup-regresi-2026-04-23.sql
+
+  ----- Restore file -----
+    cd /var/www
+    tar -xzf /root/backup-regresi-files-2026-04-23.tar.gz
+    cd regresi-linear
+    composer install --no-dev --optimize-autoloader
+    npm ci && npm run build
+    systemctl restart regresi-linear
+
+  ----- Cron backup harian (opsional) -----
+    crontab -e
+    # Tambahkan baris:
+    0 2 * * * mysqldump -u regresi_linear -pPASSWORD regresi_linear_db | gzip > /root/backup-$(date +\%F).sql.gz
+
+
+================================================================================
+  9. 🔑 AKSES LOGIN DEFAULT — WAJIB DIGANTI SETELAH LOGIN PERTAMA
+================================================================================
+
+  URL aplikasi  : https://regresi-linear.lintascode.com
+  Halaman login : https://regresi-linear.lintascode.com/login
+
+  ┌──────────────────────────────────────────────────────────┐
+  │  ADMINISTRATOR (akses penuh, bisa kelola user)           │
+  │    Email     : admin@local.test                          │
+  │    Password  : admin123                                  │
+  ├──────────────────────────────────────────────────────────┤
+  │  USER BIASA (akses dasar)                                │
+  │    Email     : user@local.test                           │
+  │    Password  : user1234                                  │
+  └──────────────────────────────────────────────────────────┘
+
+  ⚠  PENTING — GANTI password ini segera setelah login pertama!
+     Caranya: login → menu "Profil" (kanan atas) → ubah password.
+
+  Database default:
+    DB Name     : regresi_linear_db
+    DB User     : regresi_linear
+    DB Password : (auto-generated saat install — lihat output install.sh)
+
+  Sample dataset yang sudah ter-seed:
+    1. "Pengaruh Biaya Iklan terhadap Penjualan" (10 baris)
+    2. "Hubungan Jam Belajar dan Nilai Ujian" (11 baris)
+
+
+=== 10. KONTAK SUPPORT ===
+
+  Pertanyaan / bantuan:
+    Email   : <email-anda>
+    Website : https://lintascode.com
+
+================================================================================
