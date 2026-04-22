@@ -3,7 +3,7 @@ import { ref, reactive, onMounted } from 'vue';
 import axios from 'axios';
 import { auth } from '../stores/auth.js';
 
-const form = reactive({ name: '', email: '', phone: '', current_password: '', password: '', password_confirmation: '' });
+const form = reactive({ name: '', email: '', current_password: '', password: '', password_confirmation: '' });
 const errors = ref({});
 const ok = ref(false);
 const errMsg = ref('');
@@ -12,12 +12,11 @@ const loading = ref(false);
 function fill() {
   form.name = auth.state.user?.name || '';
   form.email = auth.state.user?.email || '';
-  form.phone = auth.state.user?.phone || '';
 }
 async function save() {
   errors.value = {}; ok.value = false; errMsg.value = ''; loading.value = true;
   try {
-    const payload = { name: form.name, email: form.email, phone: form.phone || null };
+    const payload = { name: form.name, email: form.email };
     if (form.password) {
       payload.password = form.password;
       payload.password_confirmation = form.password_confirmation;
@@ -52,7 +51,6 @@ onMounted(fill);
       </div>
       <div class="font-display text-xl font-bold mt-3">{{ auth.state.user?.name }}</div>
       <div class="text-sm text-ink-500">{{ auth.state.user?.email }}</div>
-      <div v-if="auth.state.user?.phone" class="text-xs text-ink-500 mt-1">📱 {{ auth.state.user.phone }}</div>
       <div class="mt-3"><span :class="auth.state.user?.role === 'admin' ? 'chip-plum' : 'chip-sky'">{{ auth.state.user?.role }}</span></div>
     </aside>
 
@@ -63,12 +61,6 @@ onMounted(fill);
             <p v-if="errors.name" class="text-rose-600 text-xs mt-1">{{ errors.name[0] }}</p></div>
           <div><label class="label">Email</label><input v-model="form.email" type="email" required class="input" />
             <p v-if="errors.email" class="text-rose-600 text-xs mt-1">{{ errors.email[0] }}</p></div>
-        </div>
-        <div>
-          <label class="label">No. HP</label>
-          <input v-model="form.phone" type="tel" inputmode="tel" placeholder="contoh: 0812-3456-7890" class="input" />
-          <p v-if="errors.phone" class="text-rose-600 text-xs mt-1">{{ errors.phone[0] }}</p>
-          <p class="text-[11px] text-ink-500 mt-1">Opsional. Digunakan untuk identifikasi cepat.</p>
         </div>
 
         <div class="border-t border-ink-100 pt-4 mt-4">

@@ -92,14 +92,12 @@ class AuthController extends Controller
         $data = $request->validate([
             'name'     => 'required|string|max:120',
             'email'    => 'required|email|max:160|unique:users,email',
-            'phone'    => 'nullable|string|max:30',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
         $user = User::create([
             'name'     => $data['name'],
             'email'    => $data['email'],
-            'phone'    => $data['phone'] ?? null,
             'password' => $data['password'],
             'role'     => User::query()->count() === 0 ? 'admin' : 'user',
         ]);
@@ -151,7 +149,6 @@ class AuthController extends Controller
         $data = $request->validate([
             'name'             => 'required|string|max:120',
             'email'            => 'required|email|max:160|unique:users,email,' . $user->id,
-            'phone'            => 'nullable|string|max:30',
             'password'         => 'nullable|string|min:6|confirmed',
             'current_password' => 'nullable|string',
         ]);
@@ -166,7 +163,6 @@ class AuthController extends Controller
         }
         $user->name  = $data['name'];
         $user->email = $data['email'];
-        $user->phone = $data['phone'] ?? null;
         $user->save();
 
         return response()->json($user);

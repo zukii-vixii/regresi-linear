@@ -76,7 +76,7 @@ const menus = [
 
     <footer class="max-w-7xl mx-auto px-4 lg:px-6 py-6 text-center text-xs text-ink-400">
       © {{ new Date().getFullYear() }} Regresi Linear
-      <span class="nav-pill ml-1" style="font-size:10px;padding:1px 6px;">v1.2.0</span>
+      <span class="nav-pill ml-1" style="font-size:10px;padding:1px 6px;">v1.3.0</span>
       · dibangun dengan Laravel + Vue 3 ·
       <RouterLink to="/tentang" class="text-sky2-600 hover:underline">Tentang Metode</RouterLink>
     </footer>

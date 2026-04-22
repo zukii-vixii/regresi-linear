@@ -8,7 +8,7 @@ import { RouterLink } from 'vue-router';
       <h1 class="page-title">Tentang Metode</h1>
       <p class="page-sub">Regresi linear sederhana — fondasi statistika &amp; machine learning.</p>
     </div>
-    <span class="nav-pill">Versi 1.2.0</span>
+    <span class="nav-pill">Versi 1.3.0</span>
   </div>
 
   <section class="hero mb-6">
@@ -79,10 +79,9 @@ import { RouterLink } from 'vue-router';
     <h3 class="section-title mb-3">🆕 Apa yang baru</h3>
     <div class="space-y-4 text-sm text-ink-700">
       <div>
-        <div class="font-bold text-ink-900">v1.2.0</div>
+        <div class="font-bold text-ink-900">v1.3.0</div>
         <ul class="list-disc pl-5 space-y-1 mt-1">
-          <li>Tambahan field <strong>No. HP</strong> pada profil, registrasi, dan manajemen pengguna.</li>
-          <li>Kolom No. HP juga ditampilkan pada tabel daftar pengguna.</li>
+          <li>Field <strong>No. HP</strong> dihapus dari profil, registrasi, dan manajemen pengguna untuk menyederhanakan formulir.</li>
         </ul>
       </div>
       <div>

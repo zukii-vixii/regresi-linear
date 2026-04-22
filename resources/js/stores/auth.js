@@ -39,8 +39,8 @@ async function login(email, password) {
   state.user = data.user;
 }
 
-async function register(name, email, password, password_confirmation, phone = null) {
-  const { data } = await axios.post('/auth/register', { name, email, phone, password, password_confirmation });
+async function register(name, email, password, password_confirmation) {
+  const { data } = await axios.post('/auth/register', { name, email, password, password_confirmation });
   setToken(data.token);
   state.user = data.user;
 }

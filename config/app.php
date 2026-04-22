@@ -2,7 +2,7 @@
 
 return [
     'name' => env('APP_NAME', 'Regresi Linear'),
-    'version' => '1.2.0',
+    'version' => '1.3.0',
     'env' => env('APP_ENV', 'production'),
     'debug' => (bool) env('APP_DEBUG', false),
     'url' => env('APP_URL', 'http://localhost'),
